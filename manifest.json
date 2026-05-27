@@ -1,7 +1,7 @@
 {
-  "name": "キラキラ ほうせきどうぶつ",
-  "short_name": "ほうせきどうぶつ",
-  "description": "ひらがな・カタカナの書き順を覚えて宝石どうぶつをあつめよう",
+  "name": "キラキラ ほうせきどうぶつと あいうえお",
+  "short_name": "ほうせきあいうえお",
+  "description": "書き順をなぞって覚えて、宝石どうぶつをあつめよう",
   "start_url": "./",
   "scope": "./",
   "display": "fullscreen",

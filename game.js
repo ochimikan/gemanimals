@@ -69,6 +69,7 @@ const state = {
   displayGems: 0,            // 装飾用カウンタ (累計獲得宝石)
   tracedChars: new Set(),     // なぞり完了した文字
   unlocked: new Set(),
+  collectedGems: new Set(),   // ことばモードで集めた小物宝石
   charKind: 'hira',
   currentChar: null,
   currentStroke: 0,
@@ -148,6 +149,7 @@ function loadState() {
     const s = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
     if (Array.isArray(s.unlocked)) state.unlocked = new Set(s.unlocked);
     if (Array.isArray(s.tracedChars)) state.tracedChars = new Set(s.tracedChars);
+    if (Array.isArray(s.collectedGems)) state.collectedGems = new Set(s.collectedGems);
     if (typeof s.displayGems === 'number') state.displayGems = s.displayGems;
   } catch(e){}
 }
@@ -156,6 +158,7 @@ function saveState() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({
       unlocked: [...state.unlocked],
       tracedChars: [...state.tracedChars],
+      collectedGems: [...state.collectedGems],
       displayGems: state.displayGems,
     }));
   } catch(e){}
@@ -203,14 +206,81 @@ function playSound(type) {
     });
   }
 }
-function speak(text) {
+// ===== ボイス再生 (VOICEVOX で生成した音声ファイル → Web Speech APIにフォールバック) =====
+let currentAudio = null;
+const audioCache = new Map();
+function stopCurrentAudio() {
+  if (currentAudio) {
+    try { currentAudio.pause(); currentAudio.currentTime = 0; } catch(_){}
+    currentAudio = null;
+  }
+  if (window.speechSynthesis) {
+    try { speechSynthesis.cancel(); } catch(_){}
+  }
+}
+function tryPlayAudio(url) {
+  return new Promise((resolve, reject) => {
+    let audio = audioCache.get(url);
+    if (!audio) {
+      audio = new Audio(url);
+      audio.preload = 'auto';
+      audioCache.set(url, audio);
+    }
+    try { audio.currentTime = 0; } catch(_){}
+    const onErr = () => { audio.removeEventListener('error', onErr); reject(new Error('audio error')); };
+    audio.addEventListener('error', onErr, { once: true });
+    const p = audio.play();
+    if (p && typeof p.then === 'function') {
+      p.then(() => { currentAudio = audio; resolve(); }).catch(reject);
+    } else {
+      currentAudio = audio;
+      resolve();
+    }
+  });
+}
+function speakWeb(text) {
   if (!window.speechSynthesis) return;
   try {
     speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(text);
-    u.lang = 'ja-JP'; u.rate = 0.85; u.pitch = 1.2;
+    u.lang = 'ja-JP'; u.rate = 0.85; u.pitch = 1.3;
     speechSynthesis.speak(u);
   } catch(e){}
+}
+// 文字 (1文字) を読む
+function speak(text) {
+  stopCurrentAudio();
+  if (!text) return;
+  // 単一文字なら audio/c_<unicode>.wav を試す
+  if ([...text].length === 1) {
+    const code = text.codePointAt(0).toString(16);
+    tryPlayAudio(`audio/c_${code}.wav`).catch(() => speakWeb(text));
+  } else {
+    speakWeb(text);
+  }
+}
+// 動物名を読む (key指定)
+function speakAnimal(key) {
+  stopCurrentAudio();
+  if (!key) return;
+  tryPlayAudio(`audio/a_${key}.wav`).catch(() => {
+    const a = ANIMAL_BY_KEY[key];
+    if (a) speakWeb(a.name);
+  });
+}
+// 決まり文句を読む
+function speakPhrase(id, fallbackText) {
+  stopCurrentAudio();
+  tryPlayAudio(`audio/p_${id}.wav`).catch(() => { if (fallbackText) speakWeb(fallbackText); });
+}
+// 単語を読む (ことばクイズ用)
+function speakWord(key) {
+  stopCurrentAudio();
+  if (!key) return;
+  const code = key.codePointAt(0).toString(16);
+  tryPlayAudio(`audio/w_${code}.wav`).catch(() => {
+    if (WORDS[key]) speakWeb(WORDS[key].word);
+  });
 }
 
 // ===== 画面遷移 =====
@@ -505,17 +575,14 @@ function flashHint() {
 }
 function completeChar() {
   const ch = state.currentChar;
-  // 既になぞり済みかどうかでメッセージ変更
-  const wasNew = !state.tracedChars.has(ch);
   state.tracedChars.add(ch);
   playSound('correct');
   setTimeout(() => playSound('gem'), 200);
   $('traceFeedback').innerHTML = '<span class="feedback correct">できた！🎉</span>';
-  // 宝石飛び (派手に)
   flyGemsFromEl($('traceSvg'), 10);
   addGems(5);
-  // 行クリア判定
-  const newly = wasNew ? unlockAnimalIfRowCleared(ch) : null;
+  // 行クリア判定 (毎回チェック。アンロック済み動物はスキップされるので重複なし)
+  const newly = unlockAnimalIfRowCleared(ch);
   saveState();
   updateGemDisplay();
   setTimeout(() => {
@@ -577,13 +644,18 @@ function checkWordAnswer(btn) {
     flyGemsFromEl(btn, 5);
     burstSparkles(btn);
     addGems(2);
-    setTimeout(() => newWordQuestion(), 1100);
+    // 小物宝石を1個ゲット
+    const newGem = collectRandomGem();
+    setTimeout(() => {
+      if (newGem) showGemReward(newGem);
+      else newWordQuestion();
+    }, 1100);
   } else {
     btn.classList.add('wrong');
     $('wordFeedback').innerHTML = '<span class="feedback wrong">もういちど！</span>';
     playSound('wrong');
     all.forEach(b => { if (b.dataset.char === state.currentWordChar) b.classList.add('correct'); });
-    speak(WORDS[state.currentWordChar].word);
+    speakWord(state.currentWordChar);
     setTimeout(newWordQuestion, 1800);
   }
 }
@@ -686,7 +758,7 @@ function showCatchModal(animal) {
   gemBurst(50, 0);
   setTimeout(() => gemBurst(40, 600), 600);
   setTimeout(() => gemBurst(35, 1200), 1200);
-  setTimeout(() => speak(animal.name), 600);
+  setTimeout(() => speakAnimal(animal.key), 600);
 }
 function gemBurst(count = 40, delay = 0) {
   const modal = $('catchModal');
@@ -723,6 +795,66 @@ function gemBurst(count = 40, delay = 0) {
     }, i * 20);
   }
 }
+// ===== ことばモード: 小物宝石GET =====
+function collectRandomGem() {
+  const remaining = GEM_IMGS.filter(g => !state.collectedGems.has(g));
+  if (remaining.length === 0) return null; // コンプ済み
+  const gem = remaining[Math.floor(Math.random() * remaining.length)];
+  state.collectedGems.add(gem);
+  saveState();
+  updateGemDisplay();
+  return gem;
+}
+function showGemReward(gemUrl) {
+  const overlay = document.createElement('div');
+  overlay.className = 'gem-reward';
+  overlay.innerHTML = `
+    <div class="gr-inner">
+      <div class="gr-title">あたらしい たからもの！</div>
+      <div class="gr-stage">
+        <div class="gr-aura"></div>
+        <img src="${gemUrl}" class="gr-img" draggable="false"/>
+      </div>
+      <div class="gr-count">${state.collectedGems.size} / ${GEM_IMGS.length} こ</div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  playSound('catch');
+  // 取得宝石の周りに小さなバースト
+  requestAnimationFrame(() => {
+    const stage = overlay.querySelector('.gr-stage');
+    const r = stage.getBoundingClientRect();
+    const cx = r.left + r.width/2;
+    const cy = r.top + r.height/2;
+    for (let i = 0; i < 24; i++) {
+      setTimeout(() => {
+        const angle = (Math.PI * 2 / 24) * i + Math.random() * 0.3;
+        const dist = 130 + Math.random() * 180;
+        const s = document.createElement('img');
+        s.className = 'gem-burst';
+        s.src = GEM_IMGS[Math.floor(Math.random() * GEM_IMGS.length)];
+        s.draggable = false;
+        s.style.left = cx + 'px';
+        s.style.top = cy + 'px';
+        s.style.setProperty('--tx', Math.cos(angle) * dist + 'px');
+        s.style.setProperty('--ty', Math.sin(angle) * dist + 'px');
+        s.style.setProperty('--rot', (Math.random() * 720 - 360) + 'deg');
+        s.style.setProperty('--size', (28 + Math.random() * 28) + 'px');
+        s.style.setProperty('--dur', '1.8s');
+        overlay.appendChild(s);
+        setTimeout(() => s.remove(), 2500);
+      }, i * 25);
+    }
+  });
+  setTimeout(() => {
+    overlay.classList.add('fade-out');
+    setTimeout(() => {
+      overlay.remove();
+      newWordQuestion();
+    }, 400);
+  }, 2200);
+}
+
 function fireConfetti() {
   const modal = $('catchModal');
   const colors = ['#f9c5d1','#fce99b','#c2e0ce','#b5cce8','#d4c1e8','#f7d4b8','#ffffff'];
@@ -756,6 +888,16 @@ function renderCollection() {
       if (a) showCatchModal(a);
     });
   });
+  // 小物コレクション
+  const gemGrid = $('gemCollectionGrid');
+  if (gemGrid) {
+    gemGrid.innerHTML = GEM_IMGS.map(g => {
+      const got = state.collectedGems.has(g);
+      return `<div class="gem-slot ${got ? 'got' : 'locked'}">${got ? `<img src="${g}" draggable="false"/>` : ''}</div>`;
+    }).join('');
+  }
+  const gemCount = $('gemCollectionCount');
+  if (gemCount) gemCount.textContent = `${state.collectedGems.size} / ${GEM_IMGS.length} こ`;
 }
 
 // ===== スタート画面の動物 =====
@@ -833,7 +975,7 @@ function bindEvents() {
   });
   // ことば: 音声・絵をタップで再生
   $('wordEmoji').addEventListener('click', () => {
-    if (state.currentWordChar) speak(WORDS[state.currentWordChar].word);
+    if (state.currentWordChar) speakWord(state.currentWordChar);
   });
   // なぞり: もういちど
   $('traceResetBtn').addEventListener('click', () => {

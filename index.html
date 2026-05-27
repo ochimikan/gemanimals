@@ -10,7 +10,7 @@
 <link rel="manifest" href="manifest.json">
 <link rel="icon" type="image/png" href="img/hamu.png">
 <link rel="apple-touch-icon" href="img/hamu.png">
-<title>キラキラ ほうせきどうぶつ ひらがな・カタカナ</title>
+<title>キラキラ ほうせきどうぶつと あいうえお</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700;800&family=Mochiy+Pop+One&display=swap" rel="stylesheet">
@@ -44,6 +44,15 @@ body {
     radial-gradient(ellipse at 50% 100%, rgba(255, 240, 200, 0.65) 0%, transparent 55%),
     linear-gradient(180deg, #ffdaea 0%, #ffe5f0 20%, #ffe9ee 35%, #ece4f3 55%, #dff0f3 75%, #fff5e8 100%);
   background-attachment: fixed;
+}
+.credit {
+  position: fixed; bottom: 6px; right: 10px;
+  font-size: 0.65rem;
+  color: rgba(180, 140, 110, 0.55);
+  pointer-events: none;
+  z-index: 2;
+  letter-spacing: 0.04em;
+  font-weight: 700;
 }
 .bg-sparkles {
   position: fixed; inset: 0;
@@ -610,6 +619,60 @@ body.tracing { overflow: hidden; overscroll-behavior: none; }
 .ai-sparkle.s4 { bottom: 12%; right: 10%; color: #b5cce8; animation-delay: -1.8s; font-size: 1.2rem; }
 @keyframes sparkleTwinkle { 0%,100%{opacity:0.4;transform:scale(0.8) rotate(0);} 50%{opacity:1;transform:scale(1.2) rotate(180deg);} }
 
+/* ===== Gem collection (図鑑の小物セクション) ===== */
+.collection-subtitle {
+  font-family: 'Mochiy Pop One', sans-serif;
+  font-size: clamp(1rem, 3vw, 1.3rem);
+  color: #b89cd6;
+  margin: 28px 0 12px;
+  text-align: center;
+  letter-spacing: 0.05em;
+}
+.collection-subtitle span { color: #a08070; font-size: 0.85em; }
+.gem-collection {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 8px;
+  width: 100%;
+  padding: 14px;
+  background: rgba(255,255,255,0.55);
+  border-radius: 22px;
+  box-shadow: var(--shadow);
+  border: 3px solid white;
+}
+.gem-slot {
+  aspect-ratio: 1;
+  border-radius: 14px;
+  background: rgba(255,255,255,0.5);
+  display: flex; align-items: center; justify-content: center;
+  border: 2px dashed rgba(180,140,110,0.22);
+  position: relative;
+  overflow: hidden;
+}
+.gem-slot.got {
+  background: linear-gradient(135deg, #ffffff, #fff8f3);
+  border: 2px solid white;
+  box-shadow: 0 4px 10px rgba(180,140,110,0.15);
+}
+.gem-slot img {
+  width: 88%; height: 88%; object-fit: contain;
+  filter: drop-shadow(0 2px 6px rgba(255, 220, 200, 0.7));
+  animation: gemSlotTwinkle 3s ease-in-out infinite;
+}
+@keyframes gemSlotTwinkle {
+  0%, 100% { transform: scale(1) rotate(-2deg); }
+  50% { transform: scale(1.05) rotate(2deg); }
+}
+.gem-slot.locked::after {
+  content: '?';
+  font-family: 'Mochiy Pop One', sans-serif;
+  font-size: 1.2rem;
+  color: rgba(180,140,110,0.3);
+}
+@media (max-width: 480px) {
+  .gem-collection { grid-template-columns: repeat(5, 1fr); gap: 5px; }
+}
+
 /* ===== Catch modal ===== */
 .catch-modal {
   position: fixed; inset: 0;
@@ -654,13 +717,87 @@ body.tracing { overflow: hidden; overscroll-behavior: none; }
 }
 @keyframes confettiFall { 0%{transform:translate(0,-100vh) rotate(0);opacity:1;} 100%{transform:translate(var(--cx),100vh) rotate(720deg);opacity:0;} }
 
-/* なかまゲット時の宝石バースト */
+/* ことばモード: 小物宝石GETモーダル */
+.gem-reward {
+  position: fixed; inset: 0;
+  background: radial-gradient(circle at center, rgba(255, 235, 245, 0.9) 0%, rgba(245, 235, 250, 0.92) 60%, rgba(220, 230, 250, 0.95) 100%);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 1100;
+  animation: grFadeIn 0.35s ease;
+  padding: 20px;
+}
+.gem-reward.fade-out { opacity: 0; transition: opacity 0.4s; }
+@keyframes grFadeIn { from { opacity: 0; } to { opacity: 1; } }
+.gr-inner {
+  text-align: center;
+  animation: grPop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+  position: relative;
+  z-index: 5;
+}
+.gr-title {
+  font-family: 'Mochiy Pop One', sans-serif;
+  font-size: clamp(1.3rem, 4vw, 1.9rem);
+  background: linear-gradient(135deg, #e89aab, #d4a8e8, #8fb8d8, #95c8a8);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 18px;
+  filter: drop-shadow(0 2px 6px rgba(232, 154, 200, 0.4));
+}
+.gr-stage {
+  position: relative;
+  width: clamp(160px, 42vw, 240px);
+  height: clamp(160px, 42vw, 240px);
+  margin: 0 auto;
+  display: flex; align-items: center; justify-content: center;
+}
+.gr-aura {
+  position: absolute; inset: -20%;
+  background: radial-gradient(circle, rgba(255,240,180,0.7) 0%, rgba(255,200,220,0.4) 40%, transparent 70%);
+  filter: blur(20px);
+  animation: grAura 2.5s ease-in-out infinite;
+  z-index: 0;
+}
+@keyframes grAura {
+  0%, 100% { opacity: 0.7; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.15); }
+}
+.gr-img {
+  position: relative;
+  width: 100%; height: 100%;
+  object-fit: contain;
+  z-index: 2;
+  filter:
+    drop-shadow(0 0 30px rgba(255, 230, 180, 0.9))
+    drop-shadow(0 0 15px rgba(255, 200, 220, 0.7));
+  animation: grSpin 2.5s ease-in-out infinite;
+}
+@keyframes grSpin {
+  0%, 100% { transform: rotate(-6deg) scale(1); }
+  50% { transform: rotate(6deg) scale(1.08); }
+}
+@keyframes grPop {
+  0% { transform: scale(0.3) rotate(-10deg); opacity: 0; }
+  60% { transform: scale(1.15) rotate(3deg); }
+  100% { transform: scale(1) rotate(0); opacity: 1; }
+}
+.gr-count {
+  margin-top: 18px;
+  font-family: 'Mochiy Pop One', sans-serif;
+  font-size: clamp(1rem, 3vw, 1.3rem);
+  color: #b89cd6;
+  filter: drop-shadow(0 2px 4px rgba(184, 156, 214, 0.3));
+}
+
+/* なかまゲット時の宝石バースト (キャラクターの背後で広がる) */
 .gem-burst {
   position: fixed;
   width: var(--size, 50px);
   height: var(--size, 50px);
   pointer-events: none;
-  z-index: 1001;
+  z-index: 1;
   object-fit: contain;
   animation: gemBurst var(--dur, 1.8s) cubic-bezier(0.16, 1, 0.3, 1) forwards;
   filter:
@@ -670,6 +807,12 @@ body.tracing { overflow: hidden; overscroll-behavior: none; }
   transform: translate(-50%, -50%);
   will-change: transform, opacity;
 }
+/* キャラクターと文字は宝石バーストより前面に */
+.catch-modal .catch-title,
+.catch-modal .catch-animal,
+.catch-modal .catch-name,
+.catch-modal .catch-sub,
+.catch-modal #catchCloseBtn { position: relative; z-index: 5; }
 @keyframes gemBurst {
   0% {
     transform: translate(-50%, -50%) scale(0.2) rotate(0deg);
@@ -707,6 +850,7 @@ body.tracing { overflow: hidden; overscroll-behavior: none; }
 </head>
 <body>
 <div class="bg-sparkles"></div>
+<div class="credit">VOICEVOX:ずんだもん</div>
 
 <!-- SVG defs (gradient for trail) -->
 <svg width="0" height="0" style="position:absolute">
@@ -732,7 +876,7 @@ body.tracing { overflow: hidden; overscroll-behavior: none; }
       <span class="ts t4">💫</span>
       <span class="ts t5">✧</span>
     </div>
-    <h1 class="title">キラキラ<br>ほうせきどうぶつ</h1>
+    <h1 class="title">キラキラ<br>ほうせきどうぶつと<br>あいうえお</h1>
     <p class="subtitle">じを なぞって おぼえて<br>ほうせきの どうぶつを あつめよう！</p>
     <div class="mode-buttons">
       <button class="btn mode-btn pink" id="toTraceBtn">
@@ -820,6 +964,8 @@ body.tracing { overflow: hidden; overscroll-behavior: none; }
     <h2 class="title">ほうせきずかん</h2>
     <p class="subtitle" id="collectionSub">あつめた どうぶつたち</p>
     <div class="collection" id="collectionGrid"></div>
+    <h3 class="collection-subtitle">あつめた たからもの <span id="gemCollectionCount"></span></h3>
+    <div class="gem-collection" id="gemCollectionGrid"></div>
     <div class="actions">
       <button class="btn pink" data-back="screenStart">もどる</button>
     </div>
