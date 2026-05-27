@@ -1,0 +1,32 @@
+{
+  "name": "キラキラ ほうせきどうぶつ",
+  "short_name": "ほうせきどうぶつ",
+  "description": "ひらがな・カタカナの書き順を覚えて宝石どうぶつをあつめよう",
+  "start_url": "./",
+  "scope": "./",
+  "display": "fullscreen",
+  "orientation": "portrait",
+  "background_color": "#ffdaea",
+  "theme_color": "#f9c5d1",
+  "lang": "ja",
+  "icons": [
+    {
+      "src": "img/hamu.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "img/hamu.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "img/hamu.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
