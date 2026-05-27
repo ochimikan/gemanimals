@@ -682,7 +682,46 @@ function showCatchModal(animal) {
   $('catchModal').classList.add('active');
   playSound('catch');
   fireConfetti();
+  // 宝石バーストを連続で発射 (中心から四方へ)
+  gemBurst(50, 0);
+  setTimeout(() => gemBurst(40, 600), 600);
+  setTimeout(() => gemBurst(35, 1200), 1200);
   setTimeout(() => speak(animal.name), 600);
+}
+function gemBurst(count = 40, delay = 0) {
+  const modal = $('catchModal');
+  if (!modal.classList.contains('active')) return;
+  // 動物が表示されてる中心を出発点に
+  const animal = $('catchAnimal');
+  let cx = window.innerWidth / 2;
+  let cy = window.innerHeight / 2;
+  if (animal) {
+    const r = animal.getBoundingClientRect();
+    if (r.width > 0) { cx = r.left + r.width/2; cy = r.top + r.height/2; }
+  }
+  for (let i = 0; i < count; i++) {
+    setTimeout(() => {
+      if (!$('catchModal').classList.contains('active')) return;
+      const gem = document.createElement('img');
+      gem.className = 'gem-burst';
+      gem.src = GEM_IMGS[Math.floor(Math.random() * GEM_IMGS.length)];
+      gem.draggable = false;
+      // 360度に均等＋ランダムオフセット
+      const angle = (Math.PI * 2 / count) * i + Math.random() * 0.4 - 0.2;
+      const dist = 220 + Math.random() * 380;
+      const tx = Math.cos(angle) * dist;
+      const ty = Math.sin(angle) * dist - 40; // 少し上に流れる
+      gem.style.left = cx + 'px';
+      gem.style.top = cy + 'px';
+      gem.style.setProperty('--tx', tx + 'px');
+      gem.style.setProperty('--ty', ty + 'px');
+      gem.style.setProperty('--rot', (Math.random() * 1080 - 540) + 'deg');
+      gem.style.setProperty('--size', (40 + Math.random() * 44) + 'px');
+      gem.style.setProperty('--dur', (1.6 + Math.random() * 1.0) + 's');
+      modal.appendChild(gem);
+      setTimeout(() => gem.remove(), 3000);
+    }, i * 20);
+  }
 }
 function fireConfetti() {
   const modal = $('catchModal');

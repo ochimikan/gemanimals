@@ -653,6 +653,44 @@ body.tracing { overflow: hidden; overscroll-behavior: none; }
   pointer-events: none; animation: confettiFall 3s linear forwards;
 }
 @keyframes confettiFall { 0%{transform:translate(0,-100vh) rotate(0);opacity:1;} 100%{transform:translate(var(--cx),100vh) rotate(720deg);opacity:0;} }
+
+/* なかまゲット時の宝石バースト */
+.gem-burst {
+  position: fixed;
+  width: var(--size, 50px);
+  height: var(--size, 50px);
+  pointer-events: none;
+  z-index: 1001;
+  object-fit: contain;
+  animation: gemBurst var(--dur, 1.8s) cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  filter:
+    drop-shadow(0 0 14px rgba(255, 230, 180, 0.95))
+    drop-shadow(0 0 8px rgba(255, 200, 220, 0.8))
+    drop-shadow(0 4px 12px rgba(232, 154, 200, 0.6));
+  transform: translate(-50%, -50%);
+  will-change: transform, opacity;
+}
+@keyframes gemBurst {
+  0% {
+    transform: translate(-50%, -50%) scale(0.2) rotate(0deg);
+    opacity: 0;
+    filter:
+      drop-shadow(0 0 20px rgba(255, 255, 200, 1))
+      drop-shadow(0 0 10px rgba(255, 230, 180, 0.95));
+  }
+  12% {
+    transform: translate(calc(-50% + var(--tx) * 0.15), calc(-50% + var(--ty) * 0.15)) scale(1.35) rotate(calc(var(--rot)*0.15));
+    opacity: 1;
+  }
+  60% {
+    transform: translate(calc(-50% + var(--tx) * 0.85), calc(-50% + var(--ty) * 0.85)) scale(1.05) rotate(calc(var(--rot)*0.7));
+    opacity: 1;
+  }
+  100% {
+    transform: translate(calc(-50% + var(--tx)), calc(-50% + var(--ty))) scale(0.85) rotate(var(--rot));
+    opacity: 0;
+  }
+}
 .actions { display: flex; gap: 12px; margin-top: 24px; flex-wrap: wrap; justify-content: center; }
 
 @media (max-width: 480px) {
