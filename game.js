@@ -220,6 +220,8 @@ function showScreen(id) {
   $(id).classList.add('active');
   if (id === 'screenStart') startTopGemRain();
   else stopTopGemRain();
+  // なぞり画面ではbodyのスクロールを止める
+  document.body.classList.toggle('tracing', id === 'screenTrace');
 }
 
 // ===== 宝石カウンタ・行進捗 =====
@@ -423,20 +425,21 @@ function trailPathD() {
 }
 function setupTraceEvents() {
   const svg = $('traceSvg');
+  // iOS/Android のスクロール抑制のため passive:false を明示
   svg.addEventListener('pointerdown', (e) => {
     e.preventDefault();
-    svg.setPointerCapture(e.pointerId);
+    try { svg.setPointerCapture(e.pointerId); } catch(_){}
     isTracing = true;
     trail = [svgPoint(svg, e)];
     $('userTrail').setAttribute('d', trailPathD());
-  });
+  }, { passive: false });
   svg.addEventListener('pointermove', (e) => {
     if (!isTracing) return;
     e.preventDefault();
     trail.push(svgPoint(svg, e));
     $('userTrail').setAttribute('d', trailPathD());
-  });
-  const finish = (e) => {
+  }, { passive: false });
+  const finish = () => {
     if (!isTracing) return;
     isTracing = false;
     evaluateStroke();
@@ -444,6 +447,9 @@ function setupTraceEvents() {
   svg.addEventListener('pointerup', finish);
   svg.addEventListener('pointercancel', finish);
   svg.addEventListener('pointerleave', finish);
+  // iOS Safari: touch event も明示的にスクロール抑制
+  svg.addEventListener('touchstart', (e) => e.preventDefault(), { passive: false });
+  svg.addEventListener('touchmove',  (e) => e.preventDefault(), { passive: false });
 }
 function dist(a, b) { return Math.hypot(a[0]-b[0], a[1]-b[1]); }
 

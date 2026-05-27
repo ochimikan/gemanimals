@@ -358,13 +358,19 @@ body {
     repeating-linear-gradient(0deg, transparent 0, transparent 19px, rgba(232,154,171,0.06) 20px),
     repeating-linear-gradient(90deg, transparent 0, transparent 19px, rgba(232,154,171,0.06) 20px);
   background-blend-mode: normal;
-  touch-action: none;
+  touch-action: none !important;
+  -ms-touch-action: none;
+  -webkit-user-select: none;
   user-select: none;
+  -webkit-touch-callout: none;
+  overscroll-behavior: contain;
   display: block;
   position: relative;
   border: 3px dashed rgba(212,193,232,0.5);
   transition: border-color 0.2s;
 }
+/* なぞり画面では body 全体のスクロールも止める */
+body.tracing { overflow: hidden; overscroll-behavior: none; }
 .trace-svg.hint-flash { border-color: #e89aab; background-color: #fdeef2; }
 
 /* SVG inner */
